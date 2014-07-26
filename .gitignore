@@ -1,0 +1,4 @@
+*.o
+/Release/
+dlsym
+/jansson/
