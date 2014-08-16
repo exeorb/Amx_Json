@@ -1,4 +1,5 @@
 *.o
+*.so
 /Release/
 dlsym
 /jansson/

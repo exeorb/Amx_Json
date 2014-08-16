@@ -1,0 +1,23 @@
+# vim: set sts=2 ts=8 sw=2 tw=99 et ft=python:
+import os.path
+
+binary = AMXX.Module(builder, 'json')
+
+binary.compiler.cflags += [
+	'-std=gnu++11',
+]
+
+binary.compiler.cxxincludes += [
+	os.path.join(builder.currentSourcePath, 'amx_handle'),
+]
+
+binary.sources = [
+  'sdk/amxxmodule.cpp',
+  'amx_handle/amx_handle.cpp',
+  'json_module.cpp',
+]
+
+if builder.target_platform == 'linux':
+  binary.compiler.postlink += [binary.Dep('jansson/src/.libs/libjansson.a')]
+
+AMXX.modules += [builder.Add(binary)]

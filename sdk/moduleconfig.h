@@ -5,7 +5,7 @@
 
 // Module info
 #define MODULE_NAME "json"
-#define MODULE_VERSION "1.2"
+#define MODULE_VERSION "1.3"
 #define MODULE_AUTHOR "Exeorb Dev Team"
 #define MODULE_URL "https://www.exeorb.com/"
 #define MODULE_LOGTAG "JSON"

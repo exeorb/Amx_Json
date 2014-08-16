@@ -1,46 +1,62 @@
 #include "amx_handle.hpp"
 
+HandleTable::~HandleTable()
+{
+	for (size_t i = 0; i < table.size(); ++i)
+	{
+		destroy(i);
+	}
+}
+
 HandleKey HandleTable::create(HandleData ptr, IHandleDispatch* dispatch)
 {	
-	auto key = ukey;
+	HandleKey key = INIT_HANDLE_VALUE;
+	QHandle handle = {ptr, dispatch, false};
+
 	if (freeHandles.size())
 	{
-		key = freeHandles.top();
+		key = freeHandles.front();
 		freeHandles.pop();
+		table[key] = handle;
 	}
 	else
 	{
-		++ukey;
+		table.push_back(handle);
+		key = static_cast<HandleKey>(table.size() - 1);
 	}
-	//tnx mr c++11 :)
-	table[key] = {ptr, dispatch};
+
 	return key;
 }
 
-HandleTable::HandleTable()
+bool HandleTable::destroy(const HandleKey& key)
 {
-	ukey = INIT_HANDLE_VALUE;
-}
+	if (table.size() <= key || key == INVALID_HANDLE)
+	{
+		return false;
+	}
 
-bool HandleTable::isValid(const HandleKey& key)
-{
-	return table.find(key) != table.end();
-}
+	auto handle = table[key];
 
-void HandleTable::destroy(const HandleKey& key)
-{
-	auto iter = table.find(key);
-	if (iter == table.end())
-		return;
-	auto handle = iter->second;
+	if (handle.free)
+	{
+		return false;
+	}
+
 	handle.dispatch->free(handle.ptr);
-	table.erase(iter);
+	handle.ptr = nullptr;
+	handle.dispatch = nullptr;
+	handle.free = true;
+
 	freeHandles.push(key);
+
+	return true;
 }
 
 HandleData HandleTable::read(const HandleKey& key)
 {
-	if (!isValid(key))
+	if (key >= table.size() || table[key].free)
+	{
 		return nullptr;
+	}
 	return table[key].ptr;
 }

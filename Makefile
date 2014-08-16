@@ -6,7 +6,7 @@
 ###########################################
 
 HLSDK = ../../../hlsdk
-MM_ROOT = ../../../metamod/metamod
+MM_ROOT = ../../../metamod/metamod-hl1
 
 #####################################
 ### EDIT BELOW FOR OTHER PROJECTS ###
@@ -27,7 +27,7 @@ CPP_GCC4_FLAGS = -fvisibility-inlines-hidden
 CPP = gcc -std=gnu++11
 CPP_OSX = clang
 
-LINK = -Wl,-Bstatic -static-libgcc -L jansson/src/.libs -ljansson -lstdc++ -Wl,-Bdynamic
+LINK = -Wl,-Bstatic -static-libgcc -L jansson/src/.libs/libjansson.a -lstdc++ -Wl,-Bdynamic
 
 INCLUDE = -I. -I$(HLSDK) -I$(HLSDK)/common -I$(HLSDK)/dlls -I$(HLSDK)/engine -I$(HLSDK)/game_shared \
           -I$(HLSDK)/public -I$(MM_ROOT) -Isdk -Iamx_handle -Ijansson-master -Ijansson/src/.libs 

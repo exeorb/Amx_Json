@@ -1,9 +1,9 @@
 #ifndef HANDLE_HPP
 #define HANDLE_HPP
 
-#include <map>
-#include <stack>
 #include <limits.h>
+#include "sh_stack.h"
+#include "CVector.h"
 
 #define INVALID_HANDLE UINT_MAX
 #define INIT_HANDLE_VALUE	0
@@ -26,6 +26,7 @@ struct QHandle
 {
 	HandleData ptr;
 	IHandleDispatch* dispatch;
+	bool free;
 };
 
 
@@ -33,17 +34,16 @@ class HandleTable
 {
 private:
 
-	std::map<HandleKey, QHandle> table;
-	std::stack<HandleKey> freeHandles;
-	HandleKey ukey;
+	CVector<QHandle> table;
+	CStack<HandleKey> freeHandles;
 public:
 
-	HandleTable();
+	HandleTable() = default;
+	~HandleTable();
 
 	HandleKey create(HandleData ptr, IHandleDispatch* dispatch);
 	HandleData read(const HandleKey& key);
-	void destroy(const HandleKey& key);
-	bool isValid(const HandleKey& key);
+	bool destroy(const HandleKey& key);
 };
 
 #endif // HANDLE_HPP
