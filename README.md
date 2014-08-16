@@ -1,1 +1,1 @@
-current version 1.2
+current version 1.3
