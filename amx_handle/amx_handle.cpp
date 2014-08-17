@@ -10,6 +10,11 @@ HandleTable::~HandleTable()
 
 HandleKey HandleTable::create(HandleData ptr, IHandleDispatch* dispatch)
 {	
+	if (!ptr || !dispatch)
+	{
+		return INVALID_HANDLE;
+	}
+
 	HandleKey key = INIT_HANDLE_VALUE;
 	QHandle handle = {ptr, dispatch, false};
 

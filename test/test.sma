@@ -296,7 +296,6 @@ stock json_test()
 	}
 
 
-
 	{
 		TEST_INIT("json object iter p1")
 

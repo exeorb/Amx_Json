@@ -1,6 +1,6 @@
 #include "json_module.hpp" 
 #include <jansson.h>
-#include <functional>
+#include <amx_handle.hpp>
 
 /*
     based on https://github.com/thraaawn/SMJansson
@@ -37,117 +37,9 @@ v 1.0 - 1.2 - was bad idea to use smart pointers
 
 Go to hell mr. smart pointer. I hate you
 
-v 1.3 - no stl in amx_handle.cpp (see https://forums.alliedmods.net/showthread.php?t=244605&page=2)
-
-i so don't want to remake this module. i so like std::bind
+v 1.3 - no stl (see https://forums.alliedmods.net/showthread.php?t=244605&page=2)
 
 */
-
-
-namespace JsonFunc
-{
-
-typedef std::function<json_t* (void)> JsonType;
-typedef std::function<cell (json_t*)> JsonValueFunc;
-typedef std::function<cell (json_t*, cell)> JsonSimpleSetFunc;
-typedef std::function<cell (json_t*, cell, cell)> JsonSetFunc;
-typedef std::function<json_t* (AMX*, json_t*, cell*)> JsonGetFunc;
-
-typedef std::function<void* (void)> JsonIterType;
-
-static cell create(AMX* amx, JsonType jtype)
-{
-    auto object = jtype();
-
-    if (!object)
-    {
-        MF_LogError(amx, AMX_ERR_NATIVE, "Couldn't create json handle");
-        return INVALID_HANDLE;
-    }
-
-    HandleKey handle = g_HandleTable->create(object, &g_JsonTypeHandler);
-    return handle;
-}
-
-static cell iter(AMX* amx, JsonIterType jiter)
-{
-    auto object = jiter();
-
-    if (!object)
-    {
-        // MF_LogError(amx, AMX_ERR_NATIVE, "Couldn't create json iter handle");
-        return INVALID_HANDLE;
-    }
-
-    HandleKey handle = g_HandleTable->create(object, &g_JsonIterTypeHandler);
-    return handle;
-}
-
-static cell simple(AMX* amx, cell* params, JsonValueFunc jfunc)
-{
-    HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
-
-    if (!object)
-    {
-        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
-        return ERROR;
-    }
-
-    return jfunc(object);
-}
-
-static cell set(AMX* amx, cell* params, JsonSimpleSetFunc jfunc)
-{
-    return JsonFunc::simple(amx, params, 
-        [&jfunc, &params](json_t* json)
-        {
-            return jfunc(json, params[2]) == JSON_SUCCESS;
-        }
-    );
-}
-
-static cell set(AMX* amx, cell* params, JsonSetFunc jfunc)
-{
-    return JsonFunc::simple(amx, params, 
-        [&jfunc, &params](json_t* json)
-        {
-            return jfunc(json, params[2], params[3]) == JSON_SUCCESS;
-        }
-    );
-}
-
-#define value simple
-
-static cell get(AMX* amx, cell* params, JsonGetFunc jfunc)
-{
-    HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
-
-    if (!object)
-    {
-        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
-        return INVALID_HANDLE;
-    }
-
-    /*it's a borrowed reference, 
-    but have to create a new json wrapper with this reference and user have to close it
-    so we have to increase reference on object  */
-    json_t* result = jfunc(amx, object, params);
-
-    if (!result)
-    {
-        return INVALID_HANDLE;
-    }
-
-    json_incref(result);
-    HandleKey resHandle = g_HandleTable->create(result, &g_JsonTypeHandler);
-
-    return resHandle;
-}
-
-} //JsonFunc
-
 
 //native destroy_handle(any:handle);
 static cell AMX_NATIVE_CALL AMX_DestroyHandle(AMX* amx, cell* params)
@@ -166,500 +58,822 @@ static cell AMX_NATIVE_CALL AMX_DestroyHandle(AMX* amx, cell* params)
 //native JsonType:json_typeof(JsonHandle:handle);
 static cell AMX_NATIVE_CALL AMX_JsonTypeof(AMX* amx, cell* params)
 { 
-    return JsonFunc::value(amx, params, 
-        [](json_t* json)
-        {
-            return json_typeof(json);
-        }
-    );
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    return json_typeof(object);
 }
 
 //native JsonHandle:json_true();
 static cell AMX_NATIVE_CALL AMX_JsonTrue(AMX* amx, cell* params)
 {
-    return JsonFunc::create(amx, json_true);
+    auto object = json_true();
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Couldn't create json handle");
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(object, &g_JsonTypeHandler); 
 }
 
 //native JsonHandle:json_false();
 static cell AMX_NATIVE_CALL AMX_JsonFalse(AMX* amx, cell* params)
 {
-    return JsonFunc::create(amx, json_false);
+    auto object = json_false();
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Couldn't create json handle");
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(object, &g_JsonTypeHandler);
 }
 
 //native JsonHandle:json_null();
 static cell AMX_NATIVE_CALL AMX_JsonNull(AMX* amx, cell* params)
 {
-    return JsonFunc::create(amx, json_null);
+    auto object = json_null();
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Couldn't create json handle");
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(object, &g_JsonTypeHandler);
 }
 
-//native JsonHandle:json_integer();
+//native JsonHandle:json_integer(value);
 static cell AMX_NATIVE_CALL AMX_JsonInteger(AMX* amx, cell* params)
 {
-    return JsonFunc::create(amx, std::bind(json_integer, params[1]));
+    auto object = json_integer(params[1]);
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Couldn't create json handle");
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(object, &g_JsonTypeHandler);
 }
 
 //native json_integer_value(JsonHandle:handle);
 static cell AMX_NATIVE_CALL AMX_JsonIntegerValue(AMX* amx, cell* params)
 {
-    return JsonFunc::value(amx, params, json_integer_value);
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    return json_integer_value(object);
 }
 
 //native json_integer_set(JsonHandle:handle, value);
 static cell AMX_NATIVE_CALL AMX_JsonIntegerSet(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params, json_integer_set);
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    return json_integer_set(object, params[2]) == JSON_SUCCESS;
 }
 
 //native JsonHandle:json_real(Float:value);
 static cell AMX_NATIVE_CALL AMX_JsonReal(AMX* amx, cell* params)
 {
-    return JsonFunc::create(amx, std::bind(json_real, amx_ctof(params[1])));
+    auto object = json_real(amx_ctof(params[1]));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Couldn't create json handle");
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(object, &g_JsonTypeHandler);
 }
 
 //native Float:json_real_value(JsonHandle:handle);
 static cell AMX_NATIVE_CALL AMX_JsonRealValue(AMX* amx, cell* params)
 {
-    return JsonFunc::value(amx, params,  
-        [](json_t* json)
-        {
-            return amx_ftoc(json_real_value(json));
-        }
-    );
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    return amx_ftoc(json_real_value(object));
 }
 
 //native Float:json_real_set(JsonHandle:handle, Float:value);
 static cell AMX_NATIVE_CALL AMX_JsonRealSet(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params, 
-        [](json_t* json, cell value)
-        {
-            return json_real_set(json, amx_ctof(value));
-        }
-    );
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    return json_real_set(object, amx_ctof(params[2])) == JSON_SUCCESS;
 }
 
 //native JsonHandle:json_array();
 static cell AMX_NATIVE_CALL AMX_JsonArray(AMX* amx, cell* params)
 {
-    return JsonFunc::create(amx, json_array);
+    auto object = json_array();
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Couldn't create json handle");
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(object, &g_JsonTypeHandler);
 }
 
 //native json_array_size(JsonHandle:handle);
 static cell AMX_NATIVE_CALL AMX_JsonArraySize(AMX* amx, cell* params)
 {
-    return JsonFunc::simple(amx, params, json_array_size);
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    return json_array_size(object);
 }
+
+/*in get functions there is a borrowed reference, 
+but have to create a new json wrapper with this reference and user have to close it
+so we have to increase reference on object  */
 
 //native JsonHandle:json_array_get(JsonHandle:handle, index);
 static cell AMX_NATIVE_CALL AMX_JsonArrayGet(AMX* amx, cell* params)
 {
-    return JsonFunc::get(amx, params, 
-        [](AMX* amx, json_t* json, cell* params)
-        {
-            return json_array_get(json, params[2]);
-        }
-    );
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return INVALID_HANDLE;
+    }
+
+    json_t* result = json_array_get(object, params[2]);
+
+    if (!result)
+    {
+        return INVALID_HANDLE;
+    }
+
+    json_incref(result);
+
+    return g_HandleTable->create(result, &g_JsonTypeHandler);
 }
 
 //native json_array_set(JsonHandle:handle, index, JsonHandle:value);
 static cell AMX_NATIVE_CALL AMX_JsonArraySet(AMX* amx, cell* params)
 {  
-    return JsonFunc::set(amx, params, 
-        [](json_t* json, cell index, cell value)
-        {
-            auto source = reinterpret_cast<json_t*>(g_HandleTable->read(value));
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    HandleKey hvalue = static_cast<HandleKey>(params[3]);
 
-            if (!source)
-            {
-                return ERROR;
-            }
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
-            return json_array_set(json, index, source);
-        }
-    );
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+
+    if (!value)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hvalue);
+        return ERROR;
+    }
+
+    return json_array_set(object, params[2], value) == JSON_SUCCESS;
 }
 
 //native json_array_set_new(JsonHandle:handle, index, JsonHandle:value);
 static cell AMX_NATIVE_CALL AMX_JsonArraySetNew(AMX* amx, cell* params)
 {  
-    return JsonFunc::set(amx, params, 
-        [](json_t* json, cell index, HandleKey value)
-        {
-            HandleKey handle = static_cast<HandleKey>(value);
-            auto source = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    HandleKey hvalue = static_cast<HandleKey>(params[3]);
 
-            if (!source)
-            {
-                return ERROR;
-            }
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
-            cell result = json_array_set(json, index, source);
-            g_HandleTable->destroy(handle);
-            return result;
-        }
-    );
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+
+    if (!value)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hvalue);
+        return ERROR;
+    }
+
+    return json_array_set(object, params[2], value) == JSON_SUCCESS && 
+        g_HandleTable->destroy(hvalue);
 }
 
 //native json_array_append(JsonHandle:handle, JsonHandle:value);
 static cell AMX_NATIVE_CALL AMX_JsonArrayAppend(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params, 
-        [](json_t* json, cell value)
-        {
-            auto source = reinterpret_cast<json_t*>(g_HandleTable->read(value));
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    HandleKey hvalue = static_cast<HandleKey>(params[2]);
 
-            if (!source)
-            {
-                return ERROR;
-            }
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
-            return json_array_append(json, source);
-        }
-    );
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+
+    if (!value)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hvalue);
+        return ERROR;
+    }
+
+    return json_array_append(object, value) == JSON_SUCCESS;
 }
 
 //native json_array_append_new(JsonHandle:handle, JsonHandle:value);
 static cell AMX_NATIVE_CALL AMX_JsonArrayAppendNew(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params, 
-        [](json_t* json, cell value)
-        {
-            HandleKey handle = static_cast<HandleKey>(value);
-            auto source = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    HandleKey hvalue = static_cast<HandleKey>(params[2]);
 
-            if (!source)
-            {
-                return ERROR;
-            }
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
-            cell result = json_array_append(json, source);
-            g_HandleTable->destroy(handle);
-            return result;
-        }
-    );
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+
+    if (!value)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hvalue);
+        return ERROR;
+    }
+
+    return json_array_append(object, value) == JSON_SUCCESS && 
+        g_HandleTable->destroy(hvalue);
 }
 
 //native json_array_insert(JsonHandle:handle, index, JsonHandle:value);
 static cell AMX_NATIVE_CALL AMX_JsonArrayInsert(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params, 
-        [](json_t* json, cell index, cell value)
-        {
-            auto source = reinterpret_cast<json_t*>(g_HandleTable->read(value));
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    HandleKey hvalue = static_cast<HandleKey>(params[3]);
 
-            if (!source)
-            {
-                return ERROR;
-            }
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
-            return json_array_insert(json, index, source);
-        }
-    );
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+
+    if (!value)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hvalue);
+        return ERROR;
+    }
+
+    return json_array_insert(object, params[2], value) == JSON_SUCCESS;
 }
 
 //native json_array_insert_new(JsonHandle:handle, index, JsonHandle:value);
 static cell AMX_NATIVE_CALL AMX_JsonArrayInsertNew(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params, 
-        [](json_t* json, cell index, cell value)
-        {
-            HandleKey handle = static_cast<HandleKey>(value);
-            auto source = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    HandleKey hvalue = static_cast<HandleKey>(params[3]);
 
-            if (!source)
-            {
-                return ERROR;
-            }
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
-            cell result = json_array_insert(json, index, source);
-            g_HandleTable->destroy(handle);
-            return result; 
-        }
-    );
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+
+    if (!value)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hvalue);
+        return ERROR;
+    }
+
+    return json_array_insert(object, params[2], value) == JSON_SUCCESS &&
+        g_HandleTable->destroy(hvalue);
 }
 
 //native json_array_extend(JsonHandle:handle, JsonHandle:other);
 static cell AMX_NATIVE_CALL AMX_JsonArrayExtend(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params, 
-        [](json_t* json, cell value)
-        {
-            HandleKey handle = static_cast<HandleKey>(value);
-            auto source = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    HandleKey hvalue = static_cast<HandleKey>(params[2]);
 
-            if (!source)
-            {
-                return ERROR;
-            }
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
-            return json_array_extend(json, source); 
-        }
-    );
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+
+    if (!value)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hvalue);
+        return ERROR;
+    }
+
+    return json_array_extend(object, value) == JSON_SUCCESS;
 }
 
 //native json_array_remove(JsonHandle:handle, index);
 static cell AMX_NATIVE_CALL AMX_JsonArrayRemove(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params, json_array_remove);
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    return json_array_remove(object, params[2]) == JSON_SUCCESS;
 }
 
 //native json_array_clear(JsonHandle:handle);
 static cell AMX_NATIVE_CALL AMX_JsonArrayClear(AMX* amx, cell* params)
 {
-    return JsonFunc::simple(amx, params, json_array_clear) == JSON_SUCCESS;
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    return json_array_clear(object) == JSON_SUCCESS;
 }
 
 //native JsonHandle:json_string(const value[]);
 static cell AMX_NATIVE_CALL AMX_JsonString(AMX* amx, cell* params)
 {
-    return JsonFunc::create(amx, 
-        std::bind(json_string, MF_GetAmxString(amx, params[1], 0, NULL)));
+    auto object = json_string(MF_GetAmxString(amx, params[1], 0, NULL));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Couldn't create json handle");
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(object, &g_JsonTypeHandler);
 }
 
 //native JsonHandle:json_stringn(const value[], len);
 static cell AMX_NATIVE_CALL AMX_JsonStringn(AMX* amx, cell* params)
 {
-    return JsonFunc::create(amx, 
-        std::bind(json_stringn, MF_GetAmxString(amx, params[1], 0, NULL), 
-            params[2]));
+    auto object = json_stringn(MF_GetAmxString(amx, params[1], 0, NULL), params[2]);
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Couldn't create json handle");
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(object, &g_JsonTypeHandler);
 }
 
 //native json_string_value(JsonHandle:handle, buffer[], len);
 static cell AMX_NATIVE_CALL AMX_JsonStringValue(AMX* amx, cell* params)
 {
-    return JsonFunc::value(amx, params,  
-        [&](json_t* json)
-        {
-            const char* value = json_string_value(json);
-            return MF_SetAmxString(amx, params[2], value, params[3]);
-        }
-    ) > 0;
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    const char* value = json_string_value(object);
+
+    return MF_SetAmxString(amx, params[2], value, params[3]) > 0;
 }
 
 //native json_string_length(JsonHandle:handle);
 static cell AMX_NATIVE_CALL AMX_JsonStringLength(AMX* amx, cell* params)
 {
-    return JsonFunc::value(amx, params, json_string_length);
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+    
+    return json_string_length(object);
 }
 
 //native json_string_set(JsonHandle:handle, const value[]);
 static cell AMX_NATIVE_CALL AMX_JsonStringSet(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params, 
-        [&](json_t* json, cell value)
-        {
-            char* data = MF_GetAmxString(amx, value, 0, NULL);
-            return json_string_set(json, data);
-        }
-    );
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+        
+    char* data = MF_GetAmxString(amx, params[2], 0, NULL);
+
+    return json_string_set(object, data) == JSON_SUCCESS;
 }
 
 //native JsonHandle:json_object();
 static cell AMX_NATIVE_CALL AMX_JsonObject(AMX* amx, cell* params)
 {
-    return JsonFunc::create(amx, json_object);
+    auto object = json_object();
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Couldn't create json handle");
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(object, &g_JsonTypeHandler);
 }
 
 //native json_object_size(JsonHandle:handle);
 static cell AMX_NATIVE_CALL AMX_JsonObjectSize(AMX* amx, cell* params)
 {
-    return JsonFunc::simple(amx, params, json_object_size);
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    return json_object_size(object);
 }
 
 //native json_object_del(JsonHandle:handle, const key[]);
 static cell AMX_NATIVE_CALL AMX_JsonObjectDel(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params, 
-        [&amx](json_t* json, cell value)
-        {
-            char* key = MF_GetAmxString(amx, value, 0, NULL);
-            return json_object_del(json, key);
-        }
-    );
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    char* key = MF_GetAmxString(amx, params[2], 0, NULL);
+
+    return json_object_del(object, key) == JSON_SUCCESS;
 }
 
 //native JsonHandle:json_object_get(JsonHandle:handle, const key[]);
 static cell AMX_NATIVE_CALL AMX_JsonObjectGet(AMX* amx, cell* params)
 {
-    return JsonFunc::get(amx, params, 
-        [](AMX* amx, json_t* json, cell* params)
-        {
-            char* key = MF_GetAmxString(amx, params[2], 0, NULL);
-            return json_object_get(json, key);
-        }
-    );
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return INVALID_HANDLE;
+    }
+
+    char* key = MF_GetAmxString(amx, params[2], 0, NULL);
+    auto result = json_object_get(object, key);
+
+    if (!result)
+    {
+        return INVALID_HANDLE;
+    }
+
+    json_incref(result);
+
+    return g_HandleTable->create(result, &g_JsonTypeHandler);
 }
 
 //native json_object_set(JsonHandle:handle, const key[], JsonHandle:value);
 static cell AMX_NATIVE_CALL AMX_JsonObjectSet(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params,
-        [&amx](json_t* json, cell amxkey, cell value)
-        {
-            char* key = MF_GetAmxString(amx, amxkey, 0, NULL);
-            auto source = reinterpret_cast<json_t*>(g_HandleTable->read(value));
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    HandleKey hvalue = static_cast<HandleKey>(params[3]);
 
-            if (!source)
-            {
-                return ERROR;
-            }
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
-            return json_object_set(json, key, source);
-        }
-    );
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+
+    if (!value)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hvalue);
+        return ERROR;
+    }
+
+    char* key = MF_GetAmxString(amx, params[2], 0, NULL);
+
+    return json_object_set(object, key, value) == JSON_SUCCESS;
 }
 
 //native json_object_set_new(JsonHandle:handle, const key[], JsonHandle:value);
 static cell AMX_NATIVE_CALL AMX_JsonObjectSetNew(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params,
-        [&amx](json_t* json, cell amxkey, cell value)
-        {
-            HandleKey handle = static_cast<HandleKey>(value);
-            char* key = MF_GetAmxString(amx, amxkey, 0, NULL);
-            auto source = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    HandleKey hvalue = static_cast<HandleKey>(params[3]);
 
-            if (!source)
-            {
-                return ERROR;
-            }
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
-            cell result = json_object_set(json, key, source);
-            g_HandleTable->destroy(handle);
-            return result;
-        }
-    );
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+
+    if (!value)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hvalue);
+        return ERROR;
+    }
+
+    char* key = MF_GetAmxString(amx, params[2], 0, NULL);
+
+    return json_object_set(object, key, value) == JSON_SUCCESS && 
+        g_HandleTable->destroy(hvalue);
 }
 
 //native json_object_clear(JsonHandle:handle);
 static cell AMX_NATIVE_CALL AMX_JsonObjectClear(AMX* amx, cell* params)
 {
-    return JsonFunc::simple(amx, params, json_object_clear) == JSON_SUCCESS;
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    return json_object_clear(object) == JSON_SUCCESS;
 }
 
 //native JsonIter:json_object_iter(JsonHandle:handle);
 static cell AMX_NATIVE_CALL AMX_JsonObjectIter(AMX* amx, cell* params)
 {
-    return JsonFunc::value(amx, params, 
-        [&amx](json_t* json)
-        {
-            return JsonFunc::iter(amx, std::bind(json_object_iter, json));
-        }
-    );
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    auto iter = json_object_iter(object);
+
+    if (!iter)
+    {
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(iter, &g_JsonIterTypeHandler);
 }
 
 //native JsonIter:json_object_iter_at(JsonHandle:handle, const key[])
 static cell AMX_NATIVE_CALL AMX_JsonObjectIterAt(AMX* amx, cell* params)
 {
-    return JsonFunc::value(amx, params, 
-        [&amx, &params](json_t* json)
-        {
-            char* key = MF_GetAmxString(amx, params[2], 0, NULL);
-            return JsonFunc::iter(amx, std::bind(json_object_iter_at, json, key));
-        }
-    );
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    char* key = MF_GetAmxString(amx, params[2], 0, NULL);
+    auto iter = json_object_iter_at(object, key);
+
+    if (!iter)
+    {
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(iter, &g_JsonIterTypeHandler);
 }
 
 //native JsonIter:json_object_iter_next(JsonHandle:handle, JsonIter:iter);
 static cell AMX_NATIVE_CALL AMX_JsonObjectIterNext(AMX* amx, cell* params)
 {
-    return JsonFunc::value(amx, params, 
-        [&amx, &params](json_t* json)
-        {
-            HandleKey iter = static_cast<HandleKey>(params[2]);
-            auto object = reinterpret_cast<JsonIterT>(g_HandleTable->read(iter));
+    HandleKey handle = static_cast<HandleKey>(params[1]);
+    HandleKey hiter = static_cast<HandleKey>(params[2]);
 
-            if (!object)
-            {
-                MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", params[2]);
-                return ERROR;
-            }
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
-            return JsonFunc::iter(amx, 
-                std::bind(json_object_iter_next, json, object));
-        }
-    );
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    auto iter = reinterpret_cast<JsonIterT>(g_HandleTable->read(hiter));
+
+    if (!iter)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hiter);
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(json_object_iter_next(object, iter),
+         &g_JsonIterTypeHandler);
 }
 
 //native json_object_iter_key(JsonIter:iter, buf[], len);
 static cell AMX_NATIVE_CALL AMX_JsonObjectIterKey(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<JsonIterT>(g_HandleTable->read(handle));
+    auto iter = reinterpret_cast<JsonIterT>(g_HandleTable->read(handle));
 
-    if (!object)
+    if (!iter)
     {
         MF_LogError(amx, AMX_ERR_NATIVE, "Invalid iter handle: %d", handle);
         return ERROR;
     }
 
     return MF_SetAmxString(amx, params[2], 
-        json_object_iter_key(object), params[3]) != ERROR;
+        json_object_iter_key(iter), params[3]) != ERROR;
 }
-
 
 //native JsonHandle:json_object_iter_value(JsonIter:iter);
 static cell AMX_NATIVE_CALL AMX_JsonObjectIterValue(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<JsonIterT>(g_HandleTable->read(handle));
+    auto iter = reinterpret_cast<JsonIterT>(g_HandleTable->read(handle));
 
-    if (!object)
+    if (!iter)
     {
-        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", params[1]);
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
         return ERROR;
     }
 
-    return JsonFunc::create(amx, std::bind(json_object_iter_value, object));
+    auto value = json_object_iter_value(iter);
+
+    if (!value)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Couldn't create json handle");
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(value, &g_JsonTypeHandler);
 }
 
 //native json_object_iter_set(JsonHandle:handle, JsonIter:iter, JsonHandle:value);
 static cell AMX_NATIVE_CALL AMX_JsonObjectIterSet(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params,
-        [&amx](json_t* json, cell ihandle, cell value)
-        {
-            auto it = reinterpret_cast<JsonIterT>(g_HandleTable->read(ihandle));
-            auto source = reinterpret_cast<json_t*>(g_HandleTable->read(value));
+    HandleKey handle = static_cast<HandleKey>(params[1]),
+        hiter = static_cast<HandleKey>(params[2]),
+        hvalue = static_cast<HandleKey>(params[3]);
 
-            if (!source || !it)
-            {
-                return ERROR;
-            }
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
-            return json_object_iter_set(json, it, source);
-        }
-    );
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    auto iter = reinterpret_cast<json_t*>(g_HandleTable->read(hiter));
+
+    if (!iter)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hiter);
+        return ERROR;
+    }
+
+    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+
+    if (!value)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hvalue);
+        return ERROR;
+    }
+
+    return json_object_iter_set(object, iter, value) == JSON_SUCCESS;
 }
-
 
 //native json_object_iter_set_new(JsonHandle:handle, JsonIter:iter, JsonHandle:value);
 static cell AMX_NATIVE_CALL AMX_JsonObjectIterSetNew(AMX* amx, cell* params)
 {
-    return JsonFunc::set(amx, params,
-        [&amx](json_t* json, cell ihandle, cell value)
-        {
-            HandleKey jhandle = static_cast<HandleKey>(value);
-            auto it = reinterpret_cast<JsonIterT>(g_HandleTable->read(ihandle));
-            auto source = reinterpret_cast<json_t*>(g_HandleTable->read(jhandle));
+    HandleKey handle = static_cast<HandleKey>(params[1]),
+        hiter = static_cast<HandleKey>(params[2]),
+        hvalue = static_cast<HandleKey>(params[3]);
 
-            if (!source || !it)
-            {
-                return ERROR;
-            }
+    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
-            cell result = json_object_iter_set(json, it, source);
-            g_HandleTable->destroy(jhandle);
-            return result;
-        }
-    );
+    if (!object)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", handle);
+        return ERROR;
+    }
+
+    auto iter = reinterpret_cast<json_t*>(g_HandleTable->read(hiter));
+
+    if (!iter)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hiter);
+        return ERROR;
+    }
+
+    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+
+    if (!value)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid handle: %d", hvalue);
+        return ERROR;
+    }
+
+    return json_object_iter_set(object, iter, value) == JSON_SUCCESS &&
+        g_HandleTable->destroy(hvalue);
 }
 
 //native JsonIter:json_object_key_to_iter(const key[]);
 static cell AMX_NATIVE_CALL AMX_JsonObjectKeyToIter(AMX* amx, cell* params)
 {
-    return JsonFunc::iter(amx, std::bind(json_object_key_to_iter, 
-        MF_GetAmxString(amx, params[1], 0, NULL)));
+    auto iter = json_object_key_to_iter(MF_GetAmxString(amx, params[1], 0, NULL));
+
+    if (!iter)
+    {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Couldn't create iter handle");
+        return INVALID_HANDLE;
+    }
+
+    return g_HandleTable->create(iter, &g_JsonIterTypeHandler);
 }
 
 //native json_dumps(JsonHandle:handle, flags, buffer[], len);
@@ -701,6 +915,7 @@ static cell AMX_NATIVE_CALL AMX_JsonDumpFile(AMX* amx, cell* params)
     }
 
     char* path = MF_GetAmxString(amx, params[2], 0, NULL);
+
     return json_dump_file(object, path, params[3]) == JSON_SUCCESS;
 }
 
@@ -710,20 +925,15 @@ static cell AMX_NATIVE_CALL AMX_JsonLoads(AMX* amx, cell* params)
     json_error_t error;
     char* input = MF_GetAmxString(amx, params[1], 0, NULL);
 
-    json_t* root = json_loads(input, params[2], &error);
+    auto object = json_loads(input, params[2], &error);
     
-    if (!root)
+    if (!object)
     {
         MF_SetAmxString(amx, params[3], error.text, params[4]);
         return INVALID_HANDLE;
     }
 
-    return JsonFunc::create(amx,
-        [&root]()
-        {
-            return root;
-        }
-    );
+    return g_HandleTable->create(object, &g_JsonTypeHandler);
 }
 
 //native JsonHandle:json_load_file(const path[], flags, error[], len);
@@ -732,20 +942,15 @@ static cell AMX_NATIVE_CALL AMX_JsonLoadFile(AMX* amx, cell* params)
     json_error_t error;
     char* path = MF_GetAmxString(amx, params[1], 0, NULL);
 
-    json_t* root = json_load_file(path, params[2], &error);
+    json_t* object = json_load_file(path, params[2], &error);
     
-    if (!root)
+    if (!object)
     {
         MF_SetAmxString(amx, params[3], error.text, params[4]);
         return INVALID_HANDLE;
     }
 
-    return JsonFunc::create(amx,
-        [&root]()
-        {
-            return root;
-        }
-    );
+    return g_HandleTable->create(object, &g_JsonTypeHandler);
 }
 
 AMX_NATIVE_INFO JSON_NATIVES[] = 
