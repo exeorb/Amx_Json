@@ -1,11 +1,34 @@
 #include "amx_handle.hpp"
 
+HandleTable::HandleTable()
+{
+	
+}
+
 HandleTable::~HandleTable()
 {
-	for (size_t i = 0; i < table.size(); ++i)
-	{
-		destroy(i);
-	}
+	#if defined(SHOW_HANDLE_LEAK)
+
+		size_t unclosedHandles = 0;
+
+		for (size_t i = 0; i < table.size(); ++i)
+		{
+			if (destroy(i))
+			{
+				++unclosedHandles;
+			}
+		}
+
+		printf("[JSON MODULE] : there are %u unclosed handles\n", unclosedHandles);
+
+	#else
+
+		for (size_t i = 0; i < table.size(); ++i)
+		{
+			destroy(i);
+		}
+
+	#endif
 }
 
 HandleKey HandleTable::create(HandleData ptr, IHandleDispatch* dispatch)
@@ -40,7 +63,7 @@ bool HandleTable::destroy(const HandleKey& key)
 		return false;
 	}
 
-	auto handle = table[key];
+	QHandle& handle = table[key];
 
 	if (handle.free)
 	{
@@ -48,8 +71,8 @@ bool HandleTable::destroy(const HandleKey& key)
 	}
 
 	handle.dispatch->free(handle.ptr);
-	handle.ptr = nullptr;
-	handle.dispatch = nullptr;
+	handle.ptr = NULL;
+	handle.dispatch = NULL;
 	handle.free = true;
 
 	freeHandles.push(key);
@@ -61,7 +84,7 @@ HandleData HandleTable::read(const HandleKey& key)
 {
 	if (key >= table.size() || table[key].free)
 	{
-		return nullptr;
+		return NULL;
 	}
 	return table[key].ptr;
 }

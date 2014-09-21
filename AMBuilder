@@ -4,7 +4,7 @@ import os.path
 binary = AMXX.Module(builder, 'json')
 
 binary.compiler.cflags += [
-	'-std=gnu++11',
+	'-DSHOW_HANDLE_LEAK',
 ]
 
 binary.compiler.cxxincludes += [

@@ -24,7 +24,7 @@ C_OPT_FLAGS = -DNDEBUG -O2 -funroll-loops -fomit-frame-pointer -pipe
 C_DEBUG_FLAGS = -D_DEBUG -DDEBUG -g -ggdb3
 C_GCC4_FLAGS = -fvisibility=hidden
 CPP_GCC4_FLAGS = -fvisibility-inlines-hidden
-CPP = gcc -std=gnu++11
+CPP = gcc
 CPP_OSX = clang
 
 LINK = -Wl,-Bstatic -static-libgcc -L jansson/src/.libs/libjansson.a -lstdc++ -Wl,-Bdynamic

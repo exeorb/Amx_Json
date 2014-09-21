@@ -33,12 +33,7 @@ JsonTypeHandler g_JsonTypeHandler;
 JsonIterTypeHandler g_JsonIterTypeHandler;
 
 /*
-v 1.0 - 1.2 - was bad idea to use smart pointers
-
-Go to hell mr. smart pointer. I hate you
-
 v 1.3 - no stl (see https://forums.alliedmods.net/showthread.php?t=244605&page=2)
-
 */
 
 //native destroy_handle(any:handle);
@@ -59,7 +54,7 @@ static cell AMX_NATIVE_CALL AMX_DestroyHandle(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonTypeof(AMX* amx, cell* params)
 { 
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -73,7 +68,7 @@ static cell AMX_NATIVE_CALL AMX_JsonTypeof(AMX* amx, cell* params)
 //native JsonHandle:json_true();
 static cell AMX_NATIVE_CALL AMX_JsonTrue(AMX* amx, cell* params)
 {
-    auto object = json_true();
+    json_t* object = json_true();
 
     if (!object)
     {
@@ -87,7 +82,7 @@ static cell AMX_NATIVE_CALL AMX_JsonTrue(AMX* amx, cell* params)
 //native JsonHandle:json_false();
 static cell AMX_NATIVE_CALL AMX_JsonFalse(AMX* amx, cell* params)
 {
-    auto object = json_false();
+    json_t* object = json_false();
 
     if (!object)
     {
@@ -101,7 +96,7 @@ static cell AMX_NATIVE_CALL AMX_JsonFalse(AMX* amx, cell* params)
 //native JsonHandle:json_null();
 static cell AMX_NATIVE_CALL AMX_JsonNull(AMX* amx, cell* params)
 {
-    auto object = json_null();
+    json_t* object = json_null();
 
     if (!object)
     {
@@ -115,7 +110,7 @@ static cell AMX_NATIVE_CALL AMX_JsonNull(AMX* amx, cell* params)
 //native JsonHandle:json_integer(value);
 static cell AMX_NATIVE_CALL AMX_JsonInteger(AMX* amx, cell* params)
 {
-    auto object = json_integer(params[1]);
+    json_t* object = json_integer(params[1]);
 
     if (!object)
     {
@@ -130,7 +125,7 @@ static cell AMX_NATIVE_CALL AMX_JsonInteger(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonIntegerValue(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -145,7 +140,7 @@ static cell AMX_NATIVE_CALL AMX_JsonIntegerValue(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonIntegerSet(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -159,7 +154,7 @@ static cell AMX_NATIVE_CALL AMX_JsonIntegerSet(AMX* amx, cell* params)
 //native JsonHandle:json_real(Float:value);
 static cell AMX_NATIVE_CALL AMX_JsonReal(AMX* amx, cell* params)
 {
-    auto object = json_real(amx_ctof(params[1]));
+    json_t* object = json_real(amx_ctof(params[1]));
 
     if (!object)
     {
@@ -174,7 +169,7 @@ static cell AMX_NATIVE_CALL AMX_JsonReal(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonRealValue(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -189,7 +184,7 @@ static cell AMX_NATIVE_CALL AMX_JsonRealValue(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonRealSet(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -203,7 +198,7 @@ static cell AMX_NATIVE_CALL AMX_JsonRealSet(AMX* amx, cell* params)
 //native JsonHandle:json_array();
 static cell AMX_NATIVE_CALL AMX_JsonArray(AMX* amx, cell* params)
 {
-    auto object = json_array();
+    json_t* object = json_array();
 
     if (!object)
     {
@@ -218,7 +213,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArray(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonArraySize(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -237,7 +232,7 @@ so we have to increase reference on object  */
 static cell AMX_NATIVE_CALL AMX_JsonArrayGet(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -263,7 +258,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArraySet(AMX* amx, cell* params)
     HandleKey handle = static_cast<HandleKey>(params[1]);
     HandleKey hvalue = static_cast<HandleKey>(params[3]);
 
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -271,7 +266,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArraySet(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+    json_t* value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
 
     if (!value)
     {
@@ -288,7 +283,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArraySetNew(AMX* amx, cell* params)
     HandleKey handle = static_cast<HandleKey>(params[1]);
     HandleKey hvalue = static_cast<HandleKey>(params[3]);
 
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -296,7 +291,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArraySetNew(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+    json_t* value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
 
     if (!value)
     {
@@ -314,7 +309,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArrayAppend(AMX* amx, cell* params)
     HandleKey handle = static_cast<HandleKey>(params[1]);
     HandleKey hvalue = static_cast<HandleKey>(params[2]);
 
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -322,7 +317,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArrayAppend(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+    json_t* value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
 
     if (!value)
     {
@@ -339,7 +334,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArrayAppendNew(AMX* amx, cell* params)
     HandleKey handle = static_cast<HandleKey>(params[1]);
     HandleKey hvalue = static_cast<HandleKey>(params[2]);
 
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -347,7 +342,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArrayAppendNew(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+    json_t* value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
 
     if (!value)
     {
@@ -365,7 +360,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArrayInsert(AMX* amx, cell* params)
     HandleKey handle = static_cast<HandleKey>(params[1]);
     HandleKey hvalue = static_cast<HandleKey>(params[3]);
 
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -373,7 +368,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArrayInsert(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+    json_t* value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
 
     if (!value)
     {
@@ -390,7 +385,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArrayInsertNew(AMX* amx, cell* params)
     HandleKey handle = static_cast<HandleKey>(params[1]);
     HandleKey hvalue = static_cast<HandleKey>(params[3]);
 
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -398,7 +393,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArrayInsertNew(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+    json_t* value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
 
     if (!value)
     {
@@ -416,7 +411,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArrayExtend(AMX* amx, cell* params)
     HandleKey handle = static_cast<HandleKey>(params[1]);
     HandleKey hvalue = static_cast<HandleKey>(params[2]);
 
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -424,7 +419,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArrayExtend(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+    json_t* value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
 
     if (!value)
     {
@@ -439,7 +434,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArrayExtend(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonArrayRemove(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -454,7 +449,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArrayRemove(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonArrayClear(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -468,7 +463,7 @@ static cell AMX_NATIVE_CALL AMX_JsonArrayClear(AMX* amx, cell* params)
 //native JsonHandle:json_string(const value[]);
 static cell AMX_NATIVE_CALL AMX_JsonString(AMX* amx, cell* params)
 {
-    auto object = json_string(MF_GetAmxString(amx, params[1], 0, NULL));
+    json_t* object = json_string(MF_GetAmxString(amx, params[1], 0, NULL));
 
     if (!object)
     {
@@ -482,7 +477,7 @@ static cell AMX_NATIVE_CALL AMX_JsonString(AMX* amx, cell* params)
 //native JsonHandle:json_stringn(const value[], len);
 static cell AMX_NATIVE_CALL AMX_JsonStringn(AMX* amx, cell* params)
 {
-    auto object = json_stringn(MF_GetAmxString(amx, params[1], 0, NULL), params[2]);
+    json_t* object = json_stringn(MF_GetAmxString(amx, params[1], 0, NULL), params[2]);
 
     if (!object)
     {
@@ -497,7 +492,7 @@ static cell AMX_NATIVE_CALL AMX_JsonStringn(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonStringValue(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -514,7 +509,7 @@ static cell AMX_NATIVE_CALL AMX_JsonStringValue(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonStringLength(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -529,7 +524,7 @@ static cell AMX_NATIVE_CALL AMX_JsonStringLength(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonStringSet(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -545,7 +540,7 @@ static cell AMX_NATIVE_CALL AMX_JsonStringSet(AMX* amx, cell* params)
 //native JsonHandle:json_object();
 static cell AMX_NATIVE_CALL AMX_JsonObject(AMX* amx, cell* params)
 {
-    auto object = json_object();
+    json_t* object = json_object();
 
     if (!object)
     {
@@ -560,7 +555,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObject(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonObjectSize(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -575,7 +570,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectSize(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonObjectDel(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -592,7 +587,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectDel(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonObjectGet(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -601,7 +596,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectGet(AMX* amx, cell* params)
     }
 
     char* key = MF_GetAmxString(amx, params[2], 0, NULL);
-    auto result = json_object_get(object, key);
+    json_t* result = json_object_get(object, key);
 
     if (!result)
     {
@@ -619,7 +614,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectSet(AMX* amx, cell* params)
     HandleKey handle = static_cast<HandleKey>(params[1]);
     HandleKey hvalue = static_cast<HandleKey>(params[3]);
 
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -627,7 +622,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectSet(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+    json_t* value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
 
     if (!value)
     {
@@ -646,7 +641,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectSetNew(AMX* amx, cell* params)
     HandleKey handle = static_cast<HandleKey>(params[1]);
     HandleKey hvalue = static_cast<HandleKey>(params[3]);
 
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -654,7 +649,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectSetNew(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+    json_t* value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
 
     if (!value)
     {
@@ -672,7 +667,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectSetNew(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonObjectClear(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -687,7 +682,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectClear(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonObjectIter(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -695,7 +690,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIter(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto iter = json_object_iter(object);
+    JsonIterT iter = json_object_iter(object);
 
     if (!iter)
     {
@@ -709,7 +704,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIter(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonObjectIterAt(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -718,7 +713,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIterAt(AMX* amx, cell* params)
     }
 
     char* key = MF_GetAmxString(amx, params[2], 0, NULL);
-    auto iter = json_object_iter_at(object, key);
+    JsonIterT iter = json_object_iter_at(object, key);
 
     if (!iter)
     {
@@ -734,7 +729,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIterNext(AMX* amx, cell* params)
     HandleKey handle = static_cast<HandleKey>(params[1]);
     HandleKey hiter = static_cast<HandleKey>(params[2]);
 
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -742,7 +737,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIterNext(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto iter = reinterpret_cast<JsonIterT>(g_HandleTable->read(hiter));
+    JsonIterT iter = reinterpret_cast<JsonIterT>(g_HandleTable->read(hiter));
 
     if (!iter)
     {
@@ -758,7 +753,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIterNext(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonObjectIterKey(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto iter = reinterpret_cast<JsonIterT>(g_HandleTable->read(handle));
+    JsonIterT iter = reinterpret_cast<JsonIterT>(g_HandleTable->read(handle));
 
     if (!iter)
     {
@@ -774,7 +769,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIterKey(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonObjectIterValue(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto iter = reinterpret_cast<JsonIterT>(g_HandleTable->read(handle));
+    JsonIterT iter = reinterpret_cast<JsonIterT>(g_HandleTable->read(handle));
 
     if (!iter)
     {
@@ -782,7 +777,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIterValue(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto value = json_object_iter_value(iter);
+    json_t* value = json_object_iter_value(iter);
 
     if (!value)
     {
@@ -800,7 +795,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIterSet(AMX* amx, cell* params)
         hiter = static_cast<HandleKey>(params[2]),
         hvalue = static_cast<HandleKey>(params[3]);
 
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -808,7 +803,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIterSet(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto iter = reinterpret_cast<json_t*>(g_HandleTable->read(hiter));
+    JsonIterT iter = reinterpret_cast<JsonIterT>(g_HandleTable->read(hiter));
 
     if (!iter)
     {
@@ -816,7 +811,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIterSet(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+    json_t* value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
 
     if (!value)
     {
@@ -834,7 +829,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIterSetNew(AMX* amx, cell* params)
         hiter = static_cast<HandleKey>(params[2]),
         hvalue = static_cast<HandleKey>(params[3]);
 
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -842,7 +837,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIterSetNew(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto iter = reinterpret_cast<json_t*>(g_HandleTable->read(hiter));
+    JsonIterT iter = reinterpret_cast<JsonIterT>(g_HandleTable->read(hiter));
 
     if (!iter)
     {
@@ -850,7 +845,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIterSetNew(AMX* amx, cell* params)
         return ERROR;
     }
 
-    auto value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
+    json_t* value = reinterpret_cast<json_t*>(g_HandleTable->read(hvalue));
 
     if (!value)
     {
@@ -865,7 +860,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectIterSetNew(AMX* amx, cell* params)
 //native JsonIter:json_object_key_to_iter(const key[]);
 static cell AMX_NATIVE_CALL AMX_JsonObjectKeyToIter(AMX* amx, cell* params)
 {
-    auto iter = json_object_key_to_iter(MF_GetAmxString(amx, params[1], 0, NULL));
+    JsonIterT iter = json_object_key_to_iter(MF_GetAmxString(amx, params[1], 0, NULL));
 
     if (!iter)
     {
@@ -880,7 +875,7 @@ static cell AMX_NATIVE_CALL AMX_JsonObjectKeyToIter(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonDumps(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -906,7 +901,7 @@ static cell AMX_NATIVE_CALL AMX_JsonDumps(AMX* amx, cell* params)
 static cell AMX_NATIVE_CALL AMX_JsonDumpFile(AMX* amx, cell* params)
 {
     HandleKey handle = static_cast<HandleKey>(params[1]);
-    auto object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
+    json_t* object = reinterpret_cast<json_t*>(g_HandleTable->read(handle));
 
     if (!object)
     {
@@ -925,7 +920,7 @@ static cell AMX_NATIVE_CALL AMX_JsonLoads(AMX* amx, cell* params)
     json_error_t error;
     char* input = MF_GetAmxString(amx, params[1], 0, NULL);
 
-    auto object = json_loads(input, params[2], &error);
+    json_t* object = json_loads(input, params[2], &error);
     
     if (!object)
     {

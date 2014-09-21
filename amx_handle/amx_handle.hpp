@@ -38,7 +38,7 @@ private:
 	CStack<HandleKey> freeHandles;
 public:
 
-	HandleTable() = default;
+	HandleTable();
 	~HandleTable();
 
 	HandleKey create(HandleData ptr, IHandleDispatch* dispatch);
